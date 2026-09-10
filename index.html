@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warehouse Leaders — Accountability Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg: #f4f5f3;
+    --surface: #ffffff;
+    --surface-2: #eceeea;
+    --border: #d8dad4;
+    --ink: #1b2420;
+    --ink-dim: #5a6660;
+    --accent: #c9631a;
+    --accent-ink: #ffffff;
+    --good: #1f7a4d;
+    --good-bg: #e3f3ea;
+    --bad: #b0362a;
+    --bad-bg: #fbe9e6;
+    --warn: #a3720f;
+    --warn-bg: #fbf0dc;
+    --neutral-bg: #eceeea;
+    --shadow: 0 1px 2px rgba(20,25,20,0.06), 0 4px 14px rgba(20,25,20,0.05);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #14171a;
+      --surface: #1c2023;
+      --surface-2: #23282b;
+      --border: #33393d;
+      --ink: #eef0ee;
+      --ink-dim: #a3aca6;
+      --accent: #e2833f;
+      --accent-ink: #14171a;
+      --good: #4fbf88;
+      --good-bg: #163427;
+      --bad: #e2695c;
+      --bad-bg: #3a1e1b;
+      --warn: #e0b34e;
+      --warn-bg: #3a2f14;
+      --neutral-bg: #23282b;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.25);
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    padding-inline: max(16px, env(safe-area-inset-left));
+    padding-block: 20px 48px;
+  }
+  .wrap{max-width:760px; margin:0 auto;}
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+  header.top h1{
+    font-size:1.15rem; font-weight:700; margin:0; letter-spacing:-0.01em;
+  }
+  header.top .eyebrow{
+    display:block; font-family:"IBM Plex Mono",monospace; font-size:0.68rem;
+    text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); margin-bottom:2px;
+  }
+  #date-line{font-family:"IBM Plex Mono",monospace; font-size:0.78rem; color:var(--ink-dim);}
+
+  nav.tabs{
+    display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    appearance:none; border:none; background:transparent; color:var(--ink-dim);
+    font-family:inherit; font-size:0.85rem; font-weight:600; padding:9px 12px;
+    cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;
+  }
+  nav.tabs button.active{ color:var(--ink); border-bottom-color:var(--accent); }
+  nav.tabs button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .summary-row{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+    gap:8px; margin-bottom:18px;
+  }
+  .stat{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:10px 12px; box-shadow:var(--shadow);
+  }
+  .stat .n{ font-family:"IBM Plex Mono",monospace; font-size:1.3rem; font-weight:600;
+    font-variant-numeric: tabular-nums; }
+  .stat .l{ font-size:0.68rem; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.05em; }
+
+  section.shift{ margin-bottom:22px; }
+  section.shift > h2{
+    font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--ink-dim); font-weight:600; margin:0 0 8px 2px;
+  }
+  ul.board{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  li.task{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:11px 13px; box-shadow:var(--shadow);
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  }
+  li.task.is-missed{ border-color: color-mix(in srgb, var(--bad) 45%, var(--border)); }
+  .task-main{ min-width:0; }
+  .task-name{ font-weight:600; font-size:0.92rem; line-height:1.3; }
+  .task-meta{
+    font-family:"IBM Plex Mono",monospace; font-size:0.72rem; color:var(--ink-dim);
+    margin-top:3px; display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .pill{
+    flex:0 0 auto; font-size:0.68rem; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.03em; padding:4px 9px; border-radius:100px; white-space:nowrap;
+    font-family:"IBM Plex Mono",monospace;
+  }
+  .pill.done{ background:var(--good-bg); color:var(--good); }
+  .pill.pending{ background:var(--neutral-bg); color:var(--ink-dim); }
+  .pill.missed{ background:var(--bad-bg); color:var(--bad); }
+  .pill.leave{ background:var(--warn-bg); color:var(--warn); }
+
+  table{ width:100%; border-collapse:collapse; background:var(--surface);
+    border:1px solid var(--border); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  th,td{ text-align:left; padding:9px 11px; font-size:0.82rem; border-bottom:1px solid var(--border); }
+  th{ font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-dim);
+    background:var(--surface-2); font-weight:600; }
+  tr:last-child td{ border-bottom:none; }
+  td.num, th.num{ font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; text-align:right; }
+  .table-wrap{ overflow-x:auto; }
+
+  .empty{ color:var(--ink-dim); font-size:0.85rem; padding:16px; text-align:center;
+    background:var(--surface); border:1px dashed var(--border); border-radius:10px; }
+  .status-line{ font-family:"IBM Plex Mono",monospace; font-size:0.72rem; color:var(--ink-dim);
+    margin-top:22px; text-align:center; }
+  .status-line.err{ color:var(--bad); }
+
+  a{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <span class="eyebrow">Warehouse Leaders</span>
+      <h1>Accountability Board</h1>
+    </div>
+    <div id="date-line">—</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="active" data-tab="today" role="tab" aria-selected="true">Today</button>
+    <button data-tab="leaderboard" role="tab" aria-selected="false">Leaderboard</button>
+    <button data-tab="leave" role="tab" aria-selected="false">Leave Tracker</button>
+    <button data-tab="slippage" role="tab" aria-selected="false">Slippage</button>
+  </nav>
+
+  <div id="panel-today">
+    <div class="summary-row" id="summary-row"></div>
+    <div id="today-board"></div>
+  </div>
+
+  <div id="panel-leaderboard" hidden>
+    <div class="table-wrap" id="leaderboard-table"></div>
+  </div>
+
+  <div id="panel-leave" hidden>
+    <div class="table-wrap" id="leave-table"></div>
+  </div>
+
+  <div id="panel-slippage" hidden>
+    <div class="table-wrap" id="slippage-table"></div>
+  </div>
+
+  <div class="status-line" id="status-line">loading…</div>
+</div>
+
+<script>
+// ── Configure after deploying the Apps Script Web App ──────────────────────
+const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_/exec_URL_HERE';
+// ─────────────────────────────────────────────────────────────────────────
+
+const REFRESH_MS = 60000; // auto-refresh the Today board every 60s
+
+function fmtDate(){
+  return new Date().toLocaleString('en-IN', {
+    weekday:'short', day:'2-digit', month:'short',
+    hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata'
+  });
+}
+document.getElementById('date-line').textContent = fmtDate();
+setInterval(() => { document.getElementById('date-line').textContent = fmtDate(); }, 30000);
+
+async function fetchJSON(action){
+  const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'action=' + action;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+function pillClass(status, onLeave){
+  if (onLeave) return 'leave';
+  if (status === 'Done') return 'done';
+  if (status === 'Missed') return 'missed';
+  return 'pending';
+}
+
+function renderToday(data){
+  const tasks = data.tasks || [];
+  const done = tasks.filter(t => t.status === 'Done').length;
+  const onLeave = tasks.filter(t => t.onLeave).length;
+  const pending = tasks.length - done;
+
+  document.getElementById('summary-row').innerHTML = `
+    <div class="stat"><div class="n">${tasks.length}</div><div class="l">Tasks today</div></div>
+    <div class="stat"><div class="n">${done}</div><div class="l">Done</div></div>
+    <div class="stat"><div class="n">${pending}</div><div class="l">Pending</div></div>
+    <div class="stat"><div class="n">${onLeave}</div><div class="l">On leave</div></div>
+  `;
+
+  // group by rough shift: task text starting with "Day" vs "Night" vs other
+  const groups = { 'Day Shift': [], 'Night Shift': [], 'Other': [] };
+  tasks.forEach(t => {
+    const name = String(t.task || '');
+    if (/^day/i.test(name)) groups['Day Shift'].push(t);
+    else if (/^night/i.test(name)) groups['Night Shift'].push(t);
+    else groups['Other'].push(t);
+  });
+
+  const board = document.getElementById('today-board');
+  if (tasks.length === 0) {
+    board.innerHTML = '<div class="empty">No active tasks found in the sheet.</div>';
+    return;
+  }
+  board.innerHTML = Object.entries(groups).filter(([,list]) => list.length).map(([label, list]) => `
+    <section class="shift">
+      <h2>${label}</h2>
+      <ul class="board">
+        ${list.map(t => `
+          <li class="task ${t.status==='Missed' ? 'is-missed' : ''}">
+            <div class="task-main">
+              <div class="task-name">${t.task}</div>
+              <div class="task-meta">
+                <span>${t.assignedTo}${t.onLeave ? ' → covered by ' + (t.coveredBy || '?') : ''}</span>
+                <span>cutoff ${t.cutoff}</span>
+              </div>
+            </div>
+            <span class="pill ${pillClass(t.status, t.onLeave)}">${t.onLeave ? 'On leave' : t.status}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </section>
+  `).join('');
+}
+
+function renderTable(el, rows, columns){
+  if (!rows || rows.length === 0){
+    el.innerHTML = '<div class="empty">No rows yet.</div>';
+    return;
+  }
+  const cols = columns || Object.keys(rows[0]);
+  el.innerHTML = `
+    <table>
+      <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr>${cols.map(c => `<td>${r[c] ?? ''}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+let loaded = { leaderboard:false, leave:false, slippage:false };
+
+async function loadToday(){
+  const data = await fetchJSON('tasks');
+  renderToday(data);
+}
+async function loadLeaderboard(){
+  const data = await fetchJSON('leaderboard');
+  renderTable(document.getElementById('leaderboard-table'), data.rows,
+    ['Name','Group','Total Points','Tasks Done','Tasks Missed','Completion Rate']);
+}
+async function loadLeave(){
+  const data = await fetchJSON('leave');
+  renderTable(document.getElementById('leave-table'), data.rows,
+    ['Name','On Leave Today (Y/N)','Covered By','Notes']);
+}
+async function loadSlippage(){
+  const data = await fetchJSON('slippage');
+  renderTable(document.getElementById('slippage-table'), data.rows,
+    ['Name','Group','Missed (Last 3 Days)','Missed (All-Time)','Completion Rate','Status']);
+}
+
+const statusLine = document.getElementById('status-line');
+async function refreshToday(){
+  try{
+    await loadToday();
+    statusLine.textContent = 'updated ' + new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+    statusLine.classList.remove('err');
+  }catch(err){
+    statusLine.textContent = APPS_SCRIPT_URL.includes('PASTE_YOUR')
+      ? 'Not connected yet — set APPS_SCRIPT_URL in index.html after deploying the Apps Script backend.'
+      : 'Could not reach the backend (' + err.message + '). Retrying…';
+    statusLine.classList.add('err');
+  }
+}
+
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+    btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+    ['today','leaderboard','leave','slippage'].forEach(t => {
+      document.getElementById('panel-' + t).hidden = (t !== btn.dataset.tab);
+    });
+    try{
+      if (btn.dataset.tab === 'leaderboard' && !loaded.leaderboard){ await loadLeaderboard(); loaded.leaderboard = true; }
+      if (btn.dataset.tab === 'leave' && !loaded.leave){ await loadLeave(); loaded.leave = true; }
+      if (btn.dataset.tab === 'slippage' && !loaded.slippage){ await loadSlippage(); loaded.slippage = true; }
+    }catch(err){
+      statusLine.textContent = 'Could not load tab (' + err.message + ')';
+      statusLine.classList.add('err');
+    }
+  });
+});
+
+refreshToday();
+setInterval(refreshToday, REFRESH_MS);
+</script>
+</body>
+</html>
