@@ -6,6 +6,7 @@
 <title>Warehouse Leaders — Accountability Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --bg: #f4f5f3;
@@ -57,9 +58,9 @@
   }
   .wrap{max-width:760px; margin:0 auto;}
   header.top{
-    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
     flex-wrap:wrap;
-    margin-bottom:18px;
+    margin-bottom:14px;
   }
   header.top h1{
     font-size:1.15rem; font-weight:700; margin:0; letter-spacing:-0.01em;
@@ -68,7 +69,24 @@
     display:block; font-family:"IBM Plex Mono",monospace; font-size:0.68rem;
     text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); margin-bottom:2px;
   }
-  #date-line{font-family:"IBM Plex Mono",monospace; font-size:0.78rem; color:var(--ink-dim);}
+  #date-line{font-family:"IBM Plex Mono",monospace; font-size:0.78rem; color:var(--ink-dim); margin-top:2px;}
+
+  /* ── Sign-in / identity chip ─────────────────────────────────────────── */
+  #auth-area{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  #gsi-button-slot{ line-height:0; }
+  .who-chip{
+    display:flex; align-items:center; gap:8px; background:var(--surface);
+    border:1px solid var(--border); border-radius:100px; padding:5px 12px 5px 5px;
+    box-shadow:var(--shadow); font-size:0.8rem;
+  }
+  .who-chip img{ width:22px; height:22px; border-radius:50%; display:block; background:var(--surface-2); }
+  .who-chip .who-name{ font-weight:600; }
+  .who-chip .who-signout{
+    appearance:none; border:none; background:none; color:var(--ink-dim); font-family:inherit;
+    font-size:0.72rem; text-decoration:underline; cursor:pointer; padding:0; margin-left:2px;
+  }
+  .who-chip.unrecognized{ border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); }
+  .who-note{ font-size:0.7rem; color:var(--warn); max-width:220px; text-align:right; line-height:1.35; }
 
   nav.tabs{
     display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--border);
@@ -104,14 +122,17 @@
     background:var(--surface); border:1px solid var(--border); border-radius:10px;
     padding:11px 13px; box-shadow:var(--shadow);
     display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    flex-wrap:wrap;
   }
   li.task.is-missed{ border-color: color-mix(in srgb, var(--bad) 45%, var(--border)); }
-  .task-main{ min-width:0; }
+  li.task.is-mine{ border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); border-width:1.5px; }
+  .task-main{ min-width:0; flex:1 1 200px; }
   .task-name{ font-weight:600; font-size:0.92rem; line-height:1.3; }
   .task-meta{
     font-family:"IBM Plex Mono",monospace; font-size:0.72rem; color:var(--ink-dim);
     margin-top:3px; display:flex; gap:8px; flex-wrap:wrap;
   }
+  .task-side{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:0 0 auto; }
   .pill{
     flex:0 0 auto; font-size:0.68rem; font-weight:600; text-transform:uppercase;
     letter-spacing:0.03em; padding:4px 9px; border-radius:100px; white-space:nowrap;
@@ -121,6 +142,15 @@
   .pill.pending{ background:var(--neutral-bg); color:var(--ink-dim); }
   .pill.missed{ background:var(--bad-bg); color:var(--bad); }
   .pill.leave{ background:var(--warn-bg); color:var(--warn); }
+  .pill.mine{ background:color-mix(in srgb, var(--accent) 18%, var(--surface)); color:var(--accent); }
+
+  .btn-vote{
+    appearance:none; border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink);
+    font-family:inherit; font-size:0.72rem; font-weight:600; padding:6px 12px; border-radius:8px;
+    cursor:pointer; white-space:nowrap;
+  }
+  .btn-vote:hover{ filter:brightness(1.06); }
+  .btn-vote:disabled{ opacity:0.55; cursor:default; }
 
   table{ width:100%; border-collapse:collapse; background:var(--surface);
     border:1px solid var(--border); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
@@ -138,6 +168,60 @@
   .status-line.err{ color:var(--bad); }
 
   a{ color:var(--accent); }
+
+  /* ── Vote / proof-upload modal ───────────────────────────────────────── */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,14,10,0.5); display:flex;
+    align-items:flex-end; justify-content:center; z-index:50; padding:0;
+  }
+  @media (min-width:560px){
+    .modal-overlay{ align-items:center; padding:16px; }
+  }
+  .modal-card{
+    background:var(--surface); width:100%; max-width:440px; border-radius:16px 16px 0 0;
+    box-shadow:0 -8px 30px rgba(0,0,0,0.25); padding:18px 18px 20px;
+    max-height:88vh; overflow-y:auto;
+  }
+  @media (min-width:560px){
+    .modal-card{ border-radius:16px; box-shadow:var(--shadow); }
+  }
+  .modal-card h3{ margin:0 0 4px; font-size:1rem; }
+  .modal-card .modal-sub{ font-size:0.78rem; color:var(--ink-dim); margin:0 0 16px; }
+  .modal-card .modal-sub b{ color:var(--ink); }
+  .proof-drop{
+    border:1.5px dashed var(--border); border-radius:12px; padding:18px; text-align:center;
+    cursor:pointer; background:var(--surface-2); margin-bottom:14px;
+  }
+  .proof-drop:hover{ border-color:var(--accent); }
+  .proof-drop .hint{ font-size:0.78rem; color:var(--ink-dim); }
+  .proof-preview{ display:none; margin-bottom:14px; }
+  .proof-preview.show{ display:block; }
+  .proof-preview img{
+    max-width:100%; max-height:220px; border-radius:10px; border:1px solid var(--border); display:block;
+    margin:0 auto 8px;
+  }
+  .proof-preview .swap{
+    display:block; text-align:center; font-size:0.75rem; background:none; border:none;
+    color:var(--accent); text-decoration:underline; cursor:pointer; font-family:inherit;
+  }
+  .modal-actions{ display:flex; gap:10px; margin-top:4px; }
+  .modal-actions button{
+    flex:1; appearance:none; border-radius:9px; padding:11px 14px; font-family:inherit;
+    font-size:0.85rem; font-weight:600; cursor:pointer;
+  }
+  #vote-cancel{ background:var(--surface-2); border:1px solid var(--border); color:var(--ink); }
+  #vote-submit{ background:var(--accent); border:1px solid var(--accent); color:var(--accent-ink); }
+  #vote-submit:disabled{ opacity:0.55; cursor:default; }
+  .modal-error{
+    display:none; background:var(--bad-bg); color:var(--bad); font-size:0.78rem;
+    border-radius:8px; padding:9px 11px; margin-bottom:12px; line-height:1.4;
+  }
+  .modal-error.show{ display:block; }
+  .modal-close{
+    position:absolute; top:10px; right:14px; appearance:none; border:none; background:none;
+    font-size:1.3rem; color:var(--ink-dim); cursor:pointer; line-height:1;
+  }
+  .modal-card{ position:relative; }
 </style>
 </head>
 <body>
@@ -147,8 +231,11 @@
     <div>
       <span class="eyebrow">Warehouse Leaders</span>
       <h1>Accountability Board</h1>
+      <div id="date-line">—</div>
     </div>
-    <div id="date-line">—</div>
+    <div id="auth-area">
+      <div id="gsi-button-slot"></div>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -178,12 +265,41 @@
   <div class="status-line" id="status-line">loading…</div>
 </div>
 
+<!-- ── Vote / proof-of-vote modal (hidden until a "Mark done" button is clicked) ── -->
+<div class="modal-overlay" id="vote-modal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="vote-close" aria-label="Close">&times;</button>
+    <h3>Mark task done</h3>
+    <p class="modal-sub" id="vote-task-label"></p>
+    <div class="modal-error" id="vote-error"></div>
+    <div class="proof-drop" id="proof-drop">
+      <div class="hint">Tap to attach a screenshot as proof<br>(required before this can be marked done)</div>
+    </div>
+    <div class="proof-preview" id="proof-preview">
+      <img id="proof-img" alt="Proof preview">
+      <button class="swap" id="proof-swap" type="button">Choose a different image</button>
+    </div>
+    <input type="file" id="proof-input" accept="image/*" hidden>
+    <div class="modal-actions">
+      <button id="vote-cancel" type="button">Cancel</button>
+      <button id="vote-submit" type="button" disabled>Mark done</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Configure after deploying the Apps Script Web App ──────────────────────
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxisFqxkgGtvejAoSFoFe1ZUX18LEuPgsKlKsUY2LZYgFVJrvgIYNsUlx031_jfC5rnhA/exec';
+
+// OAuth 2.0 Web Client ID from Google Cloud Console ("Sign in with Google").
+// Leave blank until it's created (Google Sign-In stays disabled — a note is
+// shown instead of the sign-in button). Must exactly match OAUTH_CLIENT_ID
+// in Code.gs once filled in.
+const GOOGLE_CLIENT_ID = '';
 // ─────────────────────────────────────────────────────────────────────────
 
 const REFRESH_MS = 60000; // auto-refresh the Today board every 60s
+const AUTH_STORAGE_KEY = 'wl_auth_v1';
 
 function fmtDate(){
   return new Date().toLocaleString('en-IN', {
@@ -204,6 +320,21 @@ async function fetchJSON(action){
   return res.json();
 }
 
+async function postJSON(action, body){
+  // text/plain avoids a CORS preflight against the Apps Script /exec
+  // endpoint; Code.gs parses e.postData.contents as JSON regardless of the
+  // declared content type. action travels as a query param, matching how
+  // doPost() reads e.parameter.action.
+  const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'action=' + action;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body || {})
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
 function pillClass(status, onLeave){
   if (onLeave) return 'leave';
   if (status === 'Done') return 'done';
@@ -211,8 +342,111 @@ function pillClass(status, onLeave){
   return 'pending';
 }
 
+// ── Auth state ──────────────────────────────────────────────────────────
+// auth.idToken is kept in memory only (never persisted — it's short-lived
+// anyway); auth.name/email are cached in localStorage purely so the UI can
+// show "signed in as …" instantly on reload while Google Identity Services
+// silently re-authenticates in the background (see initGoogleSignIn below).
+let auth = { idToken: null, name: null, email: null, recognized: false, message: '' };
+let lastTasks = [];
+
+function saveAuthCache(){
+  try{
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ name: auth.name, email: auth.email, recognized: auth.recognized }));
+  }catch(e){ /* private browsing / storage disabled — fine, just skip caching */ }
+}
+function loadAuthCache(){
+  try{
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return;
+    const cached = JSON.parse(raw);
+    auth.name = cached.name || null;
+    auth.email = cached.email || null;
+    auth.recognized = !!cached.recognized;
+  }catch(e){ /* ignore corrupt cache */ }
+}
+function clearAuthCache(){
+  try{ localStorage.removeItem(AUTH_STORAGE_KEY); }catch(e){}
+}
+
+function renderAuthArea(){
+  const slot = document.getElementById('gsi-button-slot');
+  if (!GOOGLE_CLIENT_ID){
+    slot.innerHTML = '<div class="who-note">Google sign-in isn\'t configured yet — voting from the webapp will open once it is.</div>';
+    return;
+  }
+  if (auth.idToken || auth.name){
+    const initials = (auth.name || auth.email || '?').trim().charAt(0).toUpperCase();
+    slot.innerHTML = `
+      <div class="who-chip ${auth.recognized ? '' : 'unrecognized'}">
+        <img src="${auth.picture || ''}" onerror="this.style.display='none'" alt="">
+        <span class="who-name">${auth.recognized ? auth.name : (auth.email || 'Signed in')}</span>
+        <button class="who-signout" id="who-signout">Sign out</button>
+      </div>
+      ${auth.recognized ? '' : `<div class="who-note">${auth.message || "Your Google account isn't on the Team tab yet — ask Rishi to add it."}</div>`}
+    `;
+    const out = document.getElementById('who-signout');
+    if (out) out.addEventListener('click', signOut);
+  } else {
+    slot.innerHTML = '';
+    try{
+      google.accounts.id.renderButton(slot, { theme: 'outline', size: 'medium', shape: 'pill', text: 'signin' });
+    }catch(e){ /* GIS script not loaded yet — initGoogleSignIn will retry */ }
+  }
+}
+
+async function handleCredentialResponse(response){
+  auth.idToken = response.credential;
+  try{
+    const who = await postJSON('whoami', { idToken: auth.idToken });
+    if (who.error){ throw new Error(who.error); }
+    auth.recognized = !!who.recognized;
+    auth.name = who.name || null;
+    auth.email = who.email || null;
+    auth.message = who.message || '';
+    saveAuthCache();
+  }catch(err){
+    auth.recognized = false;
+    auth.message = 'Could not verify sign-in (' + err.message + '). Try signing in again.';
+  }
+  renderAuthArea();
+  renderToday({ tasks: lastTasks });
+}
+
+function signOut(){
+  auth = { idToken: null, name: null, email: null, recognized: false, message: '' };
+  clearAuthCache();
+  try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  renderAuthArea();
+  renderToday({ tasks: lastTasks });
+}
+
+function initGoogleSignIn(){
+  if (!GOOGLE_CLIENT_ID){ renderAuthArea(); return; }
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.id){
+    // gsi/client script hasn't finished loading yet — retry shortly.
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  loadAuthCache(); // show a cached name instantly while a fresh token is negotiated
+  renderAuthArea();
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: true,
+    cancel_on_tap_outside: false
+  });
+  renderAuthArea();
+  // Silent re-auth for a returning, already-consented user ("stays logged
+  // in" across visits) — falls back to the rendered button with no error if
+  // the browser/user declines the prompt.
+  try{ google.accounts.id.prompt(); }catch(e){}
+}
+
+// ── Today board ─────────────────────────────────────────────────────────
 function renderToday(data){
   const tasks = data.tasks || [];
+  lastTasks = tasks;
   const done = tasks.filter(t => t.status === 'Done').length;
   const onLeave = tasks.filter(t => t.onLeave).length;
   const pending = tasks.length - done;
@@ -233,6 +467,9 @@ function renderToday(data){
     else groups['Other'].push(t);
   });
 
+  const myName = (auth.recognized && auth.name) ? auth.name.trim().toLowerCase() : null;
+  const isMine = t => myName && String(t.assignedTo || '').split('/').map(s => s.trim().toLowerCase()).includes(myName);
+
   const board = document.getElementById('today-board');
   if (tasks.length === 0) {
     board.innerHTML = '<div class="empty">No active tasks found in the sheet.</div>';
@@ -242,8 +479,11 @@ function renderToday(data){
     <section class="shift">
       <h2>${label}</h2>
       <ul class="board">
-        ${list.map(t => `
-          <li class="task ${t.status==='Missed' ? 'is-missed' : ''}">
+        ${list.map(t => {
+          const mine = isMine(t);
+          const canVote = mine && !t.onLeave && t.status !== 'Done';
+          return `
+          <li class="task ${t.status==='Missed' ? 'is-missed' : ''} ${mine ? 'is-mine' : ''}">
             <div class="task-main">
               <div class="task-name">${t.task}</div>
               <div class="task-meta">
@@ -251,12 +491,20 @@ function renderToday(data){
                 <span>cutoff ${t.cutoff}</span>
               </div>
             </div>
-            <span class="pill ${pillClass(t.status, t.onLeave)}">${t.onLeave ? 'On leave' : t.status}</span>
+            <div class="task-side">
+              <span class="pill ${pillClass(t.status, t.onLeave)}">${t.onLeave ? 'On leave' : t.status}</span>
+              ${mine && !canVote && t.status !== 'Done' ? '' : (mine ? '<span class="pill mine">Yours</span>' : '')}
+              ${canVote ? `<button class="btn-vote" data-task="${encodeURIComponent(t.task)}">Mark done</button>` : ''}
+            </div>
           </li>
-        `).join('')}
+        `;}).join('')}
       </ul>
     </section>
   `).join('');
+
+  board.querySelectorAll('.btn-vote').forEach(btn => {
+    btn.addEventListener('click', () => openVoteModal(decodeURIComponent(btn.dataset.task)));
+  });
 }
 
 function renderTable(el, rows, columns){
@@ -329,6 +577,108 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
   });
 });
 
+// ── Vote / proof-of-vote modal ─────────────────────────────────────────────
+const voteModal = document.getElementById('vote-modal');
+const voteTaskLabel = document.getElementById('vote-task-label');
+const voteError = document.getElementById('vote-error');
+const proofDrop = document.getElementById('proof-drop');
+const proofInput = document.getElementById('proof-input');
+const proofPreview = document.getElementById('proof-preview');
+const proofImg = document.getElementById('proof-img');
+const voteSubmit = document.getElementById('vote-submit');
+let voteState = { task: null, base64: null, mimeType: null, filename: null };
+
+function resetVoteModal(){
+  voteState = { task: null, base64: null, mimeType: null, filename: null };
+  proofInput.value = '';
+  proofPreview.classList.remove('show');
+  proofDrop.style.display = '';
+  voteError.classList.remove('show');
+  voteError.textContent = '';
+  voteSubmit.disabled = true;
+  voteSubmit.textContent = 'Mark done';
+}
+
+function openVoteModal(taskName){
+  resetVoteModal();
+  voteState.task = taskName;
+  voteTaskLabel.innerHTML = 'For <b>' + taskName + '</b>, signed in as <b>' + (auth.name || '') + '</b>.';
+  voteModal.hidden = false;
+}
+function closeVoteModal(){ voteModal.hidden = true; }
+
+document.getElementById('vote-close').addEventListener('click', closeVoteModal);
+document.getElementById('vote-cancel').addEventListener('click', closeVoteModal);
+voteModal.addEventListener('click', (e) => { if (e.target === voteModal) closeVoteModal(); });
+
+proofDrop.addEventListener('click', () => proofInput.click());
+document.getElementById('proof-swap').addEventListener('click', () => proofInput.click());
+
+proofInput.addEventListener('change', () => {
+  const file = proofInput.files && proofInput.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')){
+    voteError.textContent = 'Please choose an image file (screenshot/photo).';
+    voteError.classList.add('show');
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024){
+    voteError.textContent = 'That image is larger than 8MB — please choose a smaller screenshot.';
+    voteError.classList.add('show');
+    return;
+  }
+  voteError.classList.remove('show');
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = String(reader.result || '');
+    const commaIdx = dataUrl.indexOf(',');
+    voteState.base64 = dataUrl.slice(commaIdx + 1);
+    voteState.mimeType = file.type;
+    voteState.filename = file.name || 'proof.jpg';
+    proofImg.src = dataUrl;
+    proofPreview.classList.add('show');
+    proofDrop.style.display = 'none';
+    voteSubmit.disabled = false;
+  };
+  reader.onerror = () => {
+    voteError.textContent = 'Could not read that image — please try again.';
+    voteError.classList.add('show');
+  };
+  reader.readAsDataURL(file);
+});
+
+voteSubmit.addEventListener('click', async () => {
+  if (!voteState.base64 || !voteState.task) return;
+  voteSubmit.disabled = true;
+  voteSubmit.textContent = 'Marking done…';
+  voteError.classList.remove('show');
+  try{
+    const result = await postJSON('vote', {
+      idToken: auth.idToken,
+      task: voteState.task,
+      proofBase64: voteState.base64,
+      proofMimeType: voteState.mimeType,
+      proofFilename: voteState.filename
+    });
+    if (result.error){
+      voteError.textContent = result.error;
+      voteError.classList.add('show');
+      voteSubmit.disabled = false;
+      voteSubmit.textContent = 'Mark done';
+      return;
+    }
+    closeVoteModal();
+    statusLine.textContent = 'Marked "' + voteState.task + '" done — refreshing…';
+    await refreshToday();
+  }catch(err){
+    voteError.textContent = 'Could not submit (' + err.message + '). Please try again.';
+    voteError.classList.add('show');
+    voteSubmit.disabled = false;
+    voteSubmit.textContent = 'Mark done';
+  }
+});
+
+initGoogleSignIn();
 refreshToday();
 setInterval(refreshToday, REFRESH_MS);
 </script>
