@@ -180,7 +180,7 @@
 
 <script>
 // ── Configure after deploying the Apps Script Web App ──────────────────────
-const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_/exec_URL_HERE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxisFqxkgGtvejAoSFoFe1ZUX18LEuPgsKlKsUY2LZYgFVJrvgIYNsUlx031_jfC5rnhA/exec';
 // ─────────────────────────────────────────────────────────────────────────
 
 const REFRESH_MS = 60000; // auto-refresh the Today board every 60s
@@ -195,8 +195,11 @@ document.getElementById('date-line').textContent = fmtDate();
 setInterval(() => { document.getElementById('date-line').textContent = fmtDate(); }, 30000);
 
 async function fetchJSON(action){
-  const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'action=' + action;
-  const res = await fetch(url);
+  // cache-buster (_t) + no-store: Apps Script /exec URLs are easy for the
+  // browser to cache since they're plain GETs, which serves stale data
+  // after a redeploy or when task status changes during the day.
+  const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'action=' + action + '&_t=' + Date.now();
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
